@@ -79,26 +79,40 @@ namespace QuanLyBanHang
             txtTong.Text = Connecctions.GetFieldValues(str);
         }
 
-		private void btnXoa_Click(object sender, EventArgs e)
-		{
-			if (MessageBox.Show("Bạn có chắc chắn muốn xóa chứ?", "Thông báo", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-			{
-				string sql;
-				sql = "SELECT * FROM ChiTietHoaDon WHERE MaHD = N'" + txtMaHD.Text + "'";
-				DataTable dtRows = Connecctions.GetDataToTable(sql);
-				for (int row = 0; row <= dtRows.Rows.Count - 1; row++)
-				{
-					sql = "DELETE ChiTietHoaDon WHERE MaHD = N'" + txtMaHD.Text + "' AND MaSP = N'" + dtRows.Rows[row]["MaSP"] + "'";
-					Connecctions.RunSqlDel(sql);
-				}
-				sql = "DELETE HoaDon WHERE MaHD = N'" + txtMaHD.Text + "'";
-				Connecctions.RunSqlDel(sql);
+        private void btnXoa_Click(object sender, EventArgs e)
+        {
+            if (dgvHoaDon.CurrentRow == null)
+            {
+                MessageBox.Show("Vui lòng chọn hóa đơn cần xóa!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
 
-				ResetValues();
-				LoadDataGridView();
-				btnDelete.Enabled = false;
-			}
-		}
+            if (MessageBox.Show("Bạn có chắc chắn muốn xóa chứ?", "Thông báo", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            {
+                string sql;
+                // Lấy mã hóa đơn từ dòng hiện tại trong DataGridView
+                string maHDXoa = dgvHoaDon.CurrentRow.Cells["MaHD"].Value.ToString();
+
+                // Xóa các dòng chi tiết hóa đơn dựa trên mã hóa đơn đã chọn
+                sql = "SELECT * FROM ChiTietHoaDon WHERE MaHD = N'" + maHDXoa + "'";
+                DataTable dtRows = Connecctions.GetDataToTable(sql);
+
+                for (int row = 0; row < dtRows.Rows.Count; row++)
+                {
+                    sql = "DELETE FROM ChiTietHoaDon WHERE MaHD = N'" + maHDXoa + "' AND MaSP = N'" + dtRows.Rows[row]["MaSP"] + "'";
+                    Connecctions.RunSqlDel(sql);
+                }
+
+                // Xóa hóa đơn từ bảng HoaDon
+                sql = "DELETE FROM HoaDon WHERE MaHD = N'" + maHDXoa + "'";
+                Connecctions.RunSqlDel(sql);
+
+                // Đặt lại các giá trị và cập nhật DataGridView
+                ResetValues();
+                LoadDataGridView();
+                btnDelete.Enabled = false;
+            }
+        }
 
 
         private void btnLuu_Click(object sender, EventArgs e)
@@ -125,7 +139,7 @@ namespace QuanLyBanHang
                     return;
                 }
                 // Thêm mới hóa đơn
-                sql = "INSERT INTO HoaDon (MaHD, MaNV, MaKH, NgayBan, TongTien) VALUES (N'" + txtMaHD.Text.Trim() + "',N'" + cboMaNV.SelectedValue + "', N'" + cboMaKH.SelectedValue + "', '" + dtpNgayBan.Value.ToString("yyyy/MM/dd") + "', " + txtTong.Text.Trim() + ")";
+                sql = "INSERT INTO HoaDon (MaHD, MaNV, MaKH, NgayBan, TongTien) VALUES (N'" + txtMaHD.Text.Trim() + "', N'" + cboMaNV.SelectedValue + "', N'" + cboMaKH.SelectedValue + "', '" + dtpNgayBan.Value.ToString("yyyy/MM/dd") + "', 0)";
                 Connecctions.RunSQL(sql);
             }
 
@@ -166,8 +180,14 @@ namespace QuanLyBanHang
                 return;
             }
 
+            // Tính thành tiền với giảm giá
+            double soLuong = Convert.ToDouble(txtSoLuong.Text.Trim());
+            double donGia = Convert.ToDouble(txtDonGia.Text.Trim());
+            double giamGia = Convert.ToDouble(txtGiamgia.Text.Trim());
+            double thanhTien = soLuong * donGia * (1 - giamGia / 100);
+
             // Thêm chi tiết hóa đơn
-            sql = "INSERT INTO ChiTietHoaDon (MaHD, MaSP, SoLuong, DonGia, GiamGia, ThanhTien) VALUES (N'" + txtMaHD.Text.Trim() + "', N'" + cboMaSP.SelectedValue + "', " + txtSoLuong.Text.Trim() + ", " + txtDonGia.Text.Trim() + ", " + txtGiamgia.Text.Trim() + ", " + txtThanhTien.Text.Trim() + ")";
+            sql = "INSERT INTO ChiTietHoaDon (MaHD, MaSP, SoLuong, DonGia, GiamGia, ThanhTien) VALUES (N'" + txtMaHD.Text.Trim() + "', N'" + cboMaSP.SelectedValue + "', " + soLuong + ", " + donGia + ", " + giamGia + ", " + thanhTien + ")";
             Connecctions.RunSQL(sql);
             LoadDataGridView();
 
@@ -176,7 +196,7 @@ namespace QuanLyBanHang
             sql = "UPDATE HoaDon SET TongTien = " + tong + " WHERE MaHD = N'" + txtMaHD.Text.Trim() + "'";
             Connecctions.RunSQL(sql);
 
-            txtTong.Text = tong.ToString();
+            txtTong.Text = tong.ToString("N2");
             ResetValuesHang();
             btnDelete.Enabled = true;
             btnAdd.Enabled = true;
@@ -219,8 +239,9 @@ namespace QuanLyBanHang
 
         private void dgvHoaDon_DoubleClick(object sender, EventArgs e)
         {
-            string MaHangxoa, sql;
-            Double tong;
+            string MaSPxoa, sql;
+            double tong;
+
             if (dtHD.Rows.Count == 0)
             {
                 MessageBox.Show("Không có dữ liệu!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -229,12 +250,23 @@ namespace QuanLyBanHang
 
             if ((MessageBox.Show("Bạn có muốn xác nhận xóa không?", "Thông báo", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes))
             {
-                MaHangxoa = dgvHoaDon.CurrentRow.Cells["MaSP"].Value.ToString();
-                sql = "DELETE ChiTietHoaDon WHERE MaHD = N'" + txtMaHD.Text + "' AND MaSP = N'" + MaHangxoa + "'";
+                MaSPxoa = dgvHoaDon.CurrentRow.Cells["MaSP"].Value.ToString(); // Lấy mã sản phẩm của dòng cần xóa
+
+                // Xóa chi tiết hóa đơn của sản phẩm đã chọn
+                sql = "DELETE FROM ChiTietHoaDon WHERE MaHD = N'" + txtMaHD.Text + "' AND MaSP = N'" + MaSPxoa + "'";
                 Connecctions.RunSQL(sql);
 
-                tong = Convert.ToDouble(Connecctions.GetFieldValues("SELECT TongTien FROM HoaDon WHERE MaHD = N'" + txtMaHD.Text + "'"));
-                txtTong.Text = tong.ToString();
+                // Tính lại tổng tiền từ bảng ChiTietHoaDon sau khi xóa
+                tong = Convert.ToDouble(Connecctions.GetFieldValues("SELECT ISNULL(SUM(ThanhTien), 0) FROM ChiTietHoaDon WHERE MaHD = N'" + txtMaHD.Text + "'"));
+
+                // Cập nhật lại tổng tiền trong bảng HoaDon
+                sql = "UPDATE HoaDon SET TongTien = " + tong + " WHERE MaHD = N'" + txtMaHD.Text + "'";
+                Connecctions.RunSQL(sql);
+
+                // Hiển thị lại tổng tiền trên giao diện
+                txtTong.Text = tong.ToString("N2");
+
+                // Cập nhật lại DataGridView
                 LoadDataGridView();
             }
         }
@@ -295,18 +327,24 @@ namespace QuanLyBanHang
         private void txtSoLuong_TextChanged(object sender, EventArgs e)
         {
             double tt, sl, dg, gg;
-            if (txtSoLuong.Text == "")
-                sl = 0;
-            else
-                sl = Convert.ToDouble(txtSoLuong.Text);
-            if (txtDonGia.Text == "")
-                dg = 0;
-            else
-                dg = Convert.ToDouble(txtDonGia.Text);
-            tt = sl * dg - sl * dg / 100;
-            txtThanhTien.Text = tt.ToString();
-            txtTong.Text = tt.ToString();
+
+            // Kiểm tra số lượng
+            sl = string.IsNullOrEmpty(txtSoLuong.Text) ? 0 : Convert.ToDouble(txtSoLuong.Text);
+
+            // Kiểm tra đơn giá
+            dg = string.IsNullOrEmpty(txtDonGia.Text) ? 0 : Convert.ToDouble(txtDonGia.Text);
+
+            // Kiểm tra giảm giá
+            gg = string.IsNullOrEmpty(txtGiamgia.Text) ? 0 : Convert.ToDouble(txtGiamgia.Text);
+
+            // Tính toán thành tiền với giảm giá
+            tt = sl * dg * (1 - gg / 100);
+
+            // Cập nhật giá trị vào các ô hiển thị
+            txtThanhTien.Text = tt.ToString("N2");
+            txtTong.Text = tt.ToString("N2");
         }
+
 
 
         private void btnTimKiem_Click(object sender, EventArgs e)

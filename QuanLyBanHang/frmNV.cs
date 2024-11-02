@@ -254,7 +254,55 @@ namespace QuanLyBanHang
             }
         }
 
-		private void label5_Click(object sender, EventArgs e)
+        private void btnSearch_Click(object sender, EventArgs e)
+        {
+            // Lấy giá trị từ ô tìm kiếm (có thể là txtTenNhaCC hoặc một TextBox khác mà bạn đã tạo ra cho tìm kiếm)
+            string TenNV = txtTenNV.Text.Trim();
+
+            // Kiểm tra xem ô tìm kiếm có trống hay không
+            if (string.IsNullOrEmpty(TenNV))
+            {
+                MessageBox.Show("Vui lòng nhập tên nhà cung cấp để tìm kiếm.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Gọi phương thức tìm kiếm
+            SearchNhaCungCap(TenNV);
+        }
+
+        private void SearchNhaCungCap(string TenNV)
+        {
+            // Tạo câu lệnh SQL để tìm kiếm nhà cung cấp theo tên
+            string sql = "SELECT * FROM NhanVien WHERE TenNV LIKE N'%" + TenNV + "%'";
+
+            // Lấy dữ liệu từ cơ sở dữ liệu
+            DataTable dtSearch = Connecctions.GetDataToTable(sql);
+
+            // Cập nhật DataGridView với dữ liệu tìm kiếm
+            if (dtSearch.Rows.Count > 0)
+            {
+                dgvNhanVien.DataSource = dtSearch; // Cập nhật DataGridView với kết quả tìm kiếm
+            }
+            else
+            {
+                MessageBox.Show("Không tìm thấy nhà cung cấp nào!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                LoadDataGridView(); // Nếu không tìm thấy, tải lại toàn bộ dữ liệu
+            }
+
+            // Cập nhật tiêu đề cột
+            dgvNhanVien.Columns[0].HeaderText = "Mã nhân viên";
+            dgvNhanVien.Columns[1].HeaderText = "Tên nhân viên";
+            dgvNhanVien.Columns[2].HeaderText = "Ngày sinh";
+            dgvNhanVien.Columns[3].HeaderText = "Giới tính";
+            dgvNhanVien.Columns[4].HeaderText = "Địa chỉ";
+            dgvNhanVien.Columns[5].HeaderText = "Điện thoại";
+
+            dgvNhanVien.AllowUserToAddRows = false;
+            dgvNhanVien.EditMode = DataGridViewEditMode.EditProgrammatically;
+        }
+
+
+        private void label5_Click(object sender, EventArgs e)
 		{
 
 		}

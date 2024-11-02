@@ -186,7 +186,53 @@ namespace QuanLyBanHang
             }
         }
 
-		private void dgvNhaCungCap_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        private void btnSearch_Click(object sender, EventArgs e)
+        {
+            // Lấy giá trị từ ô tìm kiếm (có thể là txtTenNhaCC hoặc một TextBox khác mà bạn đã tạo ra cho tìm kiếm)
+            string tenNCC = txtTenNhaCC.Text.Trim();
+
+            // Kiểm tra xem ô tìm kiếm có trống hay không
+            if (string.IsNullOrEmpty(tenNCC))
+            {
+                MessageBox.Show("Vui lòng nhập tên nhà cung cấp để tìm kiếm.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Gọi phương thức tìm kiếm
+            SearchNhaCungCap(tenNCC);
+        }
+
+        private void SearchNhaCungCap(string tenNCC)
+        {
+            // Tạo câu lệnh SQL để tìm kiếm nhà cung cấp theo tên
+            string sql = "SELECT * FROM NhaCungCap WHERE TenNCC LIKE N'%" + tenNCC + "%'";
+
+            // Lấy dữ liệu từ cơ sở dữ liệu
+            DataTable dtSearch = Connecctions.GetDataToTable(sql);
+
+            // Cập nhật DataGridView với dữ liệu tìm kiếm
+            if (dtSearch.Rows.Count > 0)
+            {
+                dgvNhaCungCap.DataSource = dtSearch; // Cập nhật DataGridView với kết quả tìm kiếm
+            }
+            else
+            {
+                MessageBox.Show("Không tìm thấy nhà cung cấp nào!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                LoadDataGridView(); // Nếu không tìm thấy, tải lại toàn bộ dữ liệu
+            }
+
+            // Cập nhật tiêu đề cột
+            dgvNhaCungCap.Columns[0].HeaderText = "Mã nhà cung cấp";
+            dgvNhaCungCap.Columns[1].HeaderText = "Tên nhà cung cấp";
+
+            dgvNhaCungCap.AllowUserToAddRows = false;
+            dgvNhaCungCap.EditMode = DataGridViewEditMode.EditProgrammatically;
+        }
+
+
+
+
+        private void dgvNhaCungCap_CellContentClick(object sender, DataGridViewCellEventArgs e)
 		{
 
 		}

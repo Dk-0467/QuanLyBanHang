@@ -252,7 +252,47 @@ namespace QuanLyBanHang
 			txtMaKH.Enabled = false;
 		}
 
-		private void txtSDT_TextChanged(object sender, EventArgs e)
+
+        private void btnSearch_Click(object sender, EventArgs e)
+        {
+            string tenKH = txtTenKH.Text.Trim(); // Lấy tên khách hàng từ TextBox
+
+            // Gọi hàm tìm kiếm
+            SearchCustomerByName(tenKH);
+        }
+
+        private void SearchCustomerByName(string tenKH)
+        {
+            // Tạo câu lệnh SQL để tìm kiếm khách hàng theo tên
+            string sql = "SELECT * FROM KhachHang WHERE TenKH LIKE N'%" + tenKH + "%'";
+
+            // Lấy dữ liệu từ cơ sở dữ liệu
+            dtKH = Connecctions.GetDataToTable(sql);
+
+            // Cập nhật DataGridView với dữ liệu tìm kiếm
+            if (dtKH.Rows.Count > 0)
+            {
+                dgvKhachHang.DataSource = dtKH;
+            }
+            else
+            {
+                MessageBox.Show("Không tìm thấy khách hàng nào!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                LoadDataGridView(); // Nếu không tìm thấy, tải lại toàn bộ dữ liệu
+            }
+
+            // Cập nhật tiêu đề cột
+            dgvKhachHang.Columns[0].HeaderText = "Mã khách hàng";
+            dgvKhachHang.Columns[1].HeaderText = "Tên khách hàng";
+            dgvKhachHang.Columns[2].HeaderText = "Giới tính";
+            dgvKhachHang.Columns[3].HeaderText = "Địa chỉ";
+            dgvKhachHang.Columns[4].HeaderText = "Điện thoại";
+
+            dgvKhachHang.AllowUserToAddRows = false;
+            dgvKhachHang.EditMode = DataGridViewEditMode.EditProgrammatically;
+        }
+
+
+        private void txtSDT_TextChanged(object sender, EventArgs e)
 		{
 
 		}
